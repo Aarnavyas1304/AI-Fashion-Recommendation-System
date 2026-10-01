@@ -1,0 +1,21 @@
+# Node modules (never commit these — too large)
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Build output
+frontend/dist/
+backend/dist/
+
+# Environment files (may contain passwords/secrets)
+.env
+.env.local
+.env.*.local
+
+# Log files
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

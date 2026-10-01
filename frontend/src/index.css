@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FAF8F5;
+    color: #111111;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  h1, h2, h3, h4, .font-serif-editorial {
+    font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+  }
+}
+
+/* Custom Editorial Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C5A880;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B89768;
+}
+
+/* StyleAI Theme Helpers */
+.gold-btn {
+  background: #C5A880;
+  color: #FFFFFF;
+  transition: all 0.2s ease-in-out;
+}
+
+.gold-btn:hover {
+  background: #B89768;
+}
+
+.gold-outline-btn {
+  border: 1px solid #C5A880;
+  color: #111111;
+  background: transparent;
+  transition: all 0.2s ease-in-out;
+}
+
+.gold-outline-btn:hover {
+  background: #FAF8F5;
+  border-color: #B89768;
+}
+
+.style-ai-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E0DA;
+  border-radius: 0.5rem;
+}
+
+/* Hide scrollbars for clean carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
