@@ -19,3 +19,10 @@ npm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Python virtual environment
+ml-service/.venv/
+
+# Python cache
+__pycache__/
+*.pyc
