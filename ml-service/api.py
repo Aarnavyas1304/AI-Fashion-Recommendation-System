@@ -1,3 +1,4 @@
+
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
@@ -33,9 +34,9 @@ class RecommendationRequest(BaseModel):
         example="College"
     )
 
-    color: str = Field(
+    colors: list[str] = Field(
         ...,
-        example="Black"
+        example=["Black", "White", "Blue"]
     )
 
     season: str = Field(
@@ -82,7 +83,8 @@ def get_recommendations(
         user_preferences = {
             "style": request.style,
             "occasion": request.occasion,
-            "color": request.color,
+            "colors": request.colors,
+            "color": request.colors[0],
             "season": request.season,
             "size": request.size,
             "budget": request.budget

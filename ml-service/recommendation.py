@@ -1,3 +1,7 @@
+
+import numpy as np
+from pathlib import Path
+
 from utils.preprocessing import (
     load_dataset,
     clean_dataset,
@@ -10,182 +14,209 @@ from utils.similarity import calculate_similarity
 
 
 # --------------------------------------------------
-# Dataset Path
+# Dataset Path (works from different directories)
 # --------------------------------------------------
 
-DATASET_PATH = "dataset/products.csv"
+BASE_DIR = Path(__file__).resolve().parent
+DATASET_PATH = BASE_DIR / "dataset" / "products.csv"
 
 
 # --------------------------------------------------
 # Recommendation Function
 # --------------------------------------------------
 
-def recommend_products(
-    user_preferences,
-    top_n=5
-):
-    """
-    Generate fashion recommendations using:
+def recommend_products(user_preferences, top_n=5):
 
+    """
+    NEMO AI Fashion Recommendation System
+
+    Features:
     - One-Hot Encoding
+    - Multiple Color Preferences
+    - Strict Style Matching
+    - Strict Occasion Matching
+    - Strict Color Matching
     - Cosine Similarity
     - Budget Filtering
-
-    User preferences:
-
-        style
-        occasion
-        color
-        season
-        size
-        budget
-
-    Returns:
-        Top N recommended products.
     """
 
-    # --------------------------------------------------
-    # 1. Load complete dataset
-    # --------------------------------------------------
+    # 1. Validate dataset
 
-    df = load_dataset(
-        DATASET_PATH
-    )
+    if not DATASET_PATH.exists():
+        raise FileNotFoundError(
+            f"Dataset not found: {DATASET_PATH}"
+        )
 
-    # --------------------------------------------------
-    # 2. Clean complete dataset
-    # --------------------------------------------------
+    # 2. Load and clean dataset
 
-    df = clean_dataset(
-        df
-    )
+    df = load_dataset(str(DATASET_PATH))
+    df = clean_dataset(df)
 
-    # --------------------------------------------------
-    # 3. Create encoder using COMPLETE dataset
-    # --------------------------------------------------
+    if df.empty:
+        raise ValueError("Dataset contains no valid products.")
 
-    encoder = create_encoder(
-        df
-    )
+    # Normalize categorical values
 
-    # --------------------------------------------------
-    # 4. Create user preferences
-    # --------------------------------------------------
-
-    required_preferences = [
-        "style",
-        "occasion",
-        "color",
-        "season",
-        "size"
+    categorical_columns = [
+        "style", "occasion", "color", "season", "size"
     ]
 
-    for field in required_preferences:
+    for column in categorical_columns:
+        df[column] = df[column].astype(str).str.strip()
 
-        if not user_preferences.get(field):
+    # 3. Create encoder
 
+    encoder = create_encoder(df)
+
+    # 4. Validate required preferences
+
+    required_fields = [
+        "style", "occasion", "season", "size"
+    ]
+
+    for field in required_fields:
+        value = user_preferences.get(field)
+
+        if not isinstance(value, str) or not value.strip():
             raise ValueError(
-                f"Missing required field: {field}"
+                f"Missing or invalid preference: {field}"
             )
 
-    user_data = {
-        "style": user_preferences["style"],
-        "occasion": user_preferences["occasion"],
-        "color": user_preferences["color"],
-        "season": user_preferences["season"],
-        "size": user_preferences["size"]
-    }
+    # 5. Process multiple colors
 
-    # --------------------------------------------------
-    # 5. Convert user preferences into vector
-    # --------------------------------------------------
+    colors = user_preferences.get("colors")
 
-    user_vector = create_user_vector(
-        user_data,
-        encoder
-    )
+    # Backward compatibility with single color
 
-    # --------------------------------------------------
-    # 6. Apply budget filter
-    # --------------------------------------------------
+    if colors is None:
+        old_color = user_preferences.get("color")
+        colors = [old_color] if old_color else []
 
-    budget = user_preferences.get(
-        "budget"
-    )
+    elif isinstance(colors, str):
+        colors = [colors]
+
+    if not isinstance(colors, list):
+        raise ValueError("Colors must be provided as a list.")
+
+    colors = list(dict.fromkeys(
+        color.strip()
+        for color in colors
+        if isinstance(color, str) and color.strip()
+    ))
+
+    if not colors:
+        raise ValueError("Please select at least one color.")
+
+    # 6. Create combined user preference vector
+
+    user_vectors = []
+
+    for color in colors:
+
+        user_data = {
+            "style": user_preferences["style"].strip(),
+            "occasion": user_preferences["occasion"].strip(),
+            "color": color,
+            "season": user_preferences["season"].strip(),
+            "size": user_preferences["size"].strip()
+        }
+
+        user_vector = create_user_vector(
+            user_data,
+            encoder
+        )
+
+        user_vectors.append(user_vector[0])
+
+    user_vector = np.mean(
+        user_vectors,
+        axis=0
+    ).reshape(1, -1)
+
+    # 7. Apply budget filtering
+
+    budget = user_preferences.get("budget")
+
+    filtered_df = df.copy()
 
     if budget is not None:
 
         try:
-
-            budget = float(
-                budget
-            )
-
+            budget = float(budget)
         except (ValueError, TypeError):
+            raise ValueError("Budget must be a valid number.")
 
-            raise ValueError(
-                "Budget must be a valid number."
-            )
+        if budget < 0:
+            raise ValueError("Budget cannot be negative.")
 
-        # Keep products within budget
-        filtered_df = df[
-            df["price"] <= budget
+        filtered_df = filtered_df[
+            filtered_df["price"] <= budget
         ].copy()
 
-    else:
+    # 8. Strict style filtering
 
-        filtered_df = df.copy()
+    selected_style = user_preferences["style"].strip().casefold()
 
-    # --------------------------------------------------
-    # 7. Check if products are available
-    # --------------------------------------------------
+    filtered_df = filtered_df[
+        filtered_df["style"].str.casefold() == selected_style
+    ].copy()
+
+    # 9. Strict occasion filtering
+
+    selected_occasion = (
+        user_preferences["occasion"].strip().casefold()
+    )
+
+    filtered_df = filtered_df[
+        filtered_df["occasion"].str.casefold() == selected_occasion
+    ].copy()
+
+    # 10. Strict color filtering
+
+    selected_colors = [
+        color.casefold() for color in colors
+    ]
+
+    filtered_df = filtered_df[
+        filtered_df["color"].str.casefold().isin(selected_colors)
+    ].copy()
+
+    # 11. Check matching products
 
     if filtered_df.empty:
-
+        print(
+            "No products found for these preferences. "
+            "Try changing your style, occasion, colors or budget."
+        )
         return filtered_df
 
-    # --------------------------------------------------
-    # 8. Create vectors only for filtered products
-    #    using the SAME encoder
-    # --------------------------------------------------
+    # 12. Create product vectors
 
     product_vectors = create_product_vectors(
         filtered_df,
         encoder
     )
 
-    # --------------------------------------------------
-    # 9. Calculate cosine similarity
-    # --------------------------------------------------
+    # 13. Calculate cosine similarity
 
     similarity_scores = calculate_similarity(
         product_vectors,
         user_vector
     )
 
-    # --------------------------------------------------
-    # 10. Add similarity scores
-    # --------------------------------------------------
+    # 14. Add similarity scores
 
     filtered_df = filtered_df.copy()
 
-    filtered_df[
-        "similarity_score"
-    ] = similarity_scores
+    filtered_df["similarity_score"] = similarity_scores
 
-    # --------------------------------------------------
-    # 11. Sort by similarity
-    # --------------------------------------------------
+    # 15. Sort by similarity
 
     filtered_df = filtered_df.sort_values(
         by="similarity_score",
         ascending=False
     )
 
-    # --------------------------------------------------
-    # 12. Return Top N
-    # --------------------------------------------------
+    # 16. Return top recommendations
 
-    return filtered_df.head(
-        top_n
-    )
+    return filtered_df.head(top_n).reset_index(drop=True)

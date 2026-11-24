@@ -1,14 +1,24 @@
+
 from recommendation import recommend_products
 
 
 # --------------------------------------------------
-# User preferences
+# NEMO USER PREFERENCES
 # --------------------------------------------------
 
 user_preferences = {
     "style": "Casual",
     "occasion": "College",
-    "color": "Black",
+    "colors": [
+        "Black",
+        "White",
+        "Blue",
+        "Pink",
+        "Red",
+        "Green",
+        "Purple",
+        "Beige"
+    ],
     "season": "Summer",
     "size": "M",
     "budget": 3000
@@ -16,78 +26,78 @@ user_preferences = {
 
 
 # --------------------------------------------------
-# Generate recommendations
+# GENERATE RECOMMENDATIONS
 # --------------------------------------------------
 
-recommendations = recommend_products(
-    user_preferences,
-    top_n=5
-)
+if __name__ == "__main__":
 
+    print("\n" + "=" * 45)
+    print("          NEMO AI RECOMMENDATIONS")
+    print("=" * 45)
 
-# --------------------------------------------------
-# Display results
-# --------------------------------------------------
+    print("\nYOUR SELECTED PREFERENCES")
+    print("-" * 45)
+    print("Style:", user_preferences["style"])
+    print("Occasion:", user_preferences["occasion"])
+    print("Colors:", ", ".join(user_preferences["colors"]))
+    print("Season:", user_preferences["season"])
+    print("Size:", user_preferences["size"])
+    print("Budget: ₹", user_preferences["budget"])
 
-print()
-print("========================================")
-print("          NEMO RECOMMENDATIONS")
-print("========================================")
-print()
+    try:
 
-
-if recommendations.empty:
-
-    print(
-        "No products found within the selected budget."
-    )
-
-else:
-
-    for rank, (_, product) in enumerate(
-        recommendations.iterrows(),
-        start=1
-    ):
-
-        print(
-            f"{rank}. {product['product_name']}"
+        recommendations = recommend_products(
+            user_preferences,
+            top_n=10
         )
 
-        print(
-            f"   Category: {product['category']}"
-        )
+        if recommendations.empty:
 
-        print(
-            f"   Style: {product['style']}"
-        )
+            print("\nNo matching products found.")
+            print("Try changing your preferences or budget.")
 
-        print(
-            f"   Occasion: {product['occasion']}"
-        )
+        else:
 
-        print(
-            f"   Color: {product['color']}"
-        )
+            print("\n" + "=" * 45)
+            print("          RECOMMENDED PRODUCTS")
+            print("=" * 45)
 
-        print(
-            f"   Season: {product['season']}"
-        )
+            print(
+                f"\nTotal recommendations: {len(recommendations)}"
+            )
 
-        print(
-            f"   Size: {product['size']}"
-        )
+            for index, product in recommendations.iterrows():
 
-        print(
-            f"   Price: ₹{product['price']}"
-        )
+                image_url = product.get("image_url")
 
-        print(
-            f"   Similarity Score: "
-            f"{product['similarity_score']:.4f}"
-        )
+                if image_url is None or str(image_url).lower() == "nan":
+                    image_url = "Not available"
 
-        print(
-            f"   Image: {product['image_url']}"
-        )
+                print(f"\n{index + 1}. {product['product_name']}")
+                print("-" * 45)
 
-        print("----------------------------------------")
+                print("Product ID:", product["product_id"])
+                print("Category:", product["category"])
+                print("Style:", product["style"])
+                print("Occasion:", product["occasion"])
+                print("Color:", product["color"])
+                print("Season:", product["season"])
+                print("Size:", product["size"])
+                print("Price: ₹", product["price"])
+
+                print(
+                    "Similarity Score:",
+                    f"{product['similarity_score']:.4f}"
+                )
+
+                print("Image:", image_url)
+
+            print("\n" + "=" * 45)
+            print("       RECOMMENDATIONS COMPLETED")
+            print("=" * 45)
+
+    except Exception as error:
+
+        print("\nERROR GENERATING RECOMMENDATIONS")
+        print("-" * 45)
+        print(error)
